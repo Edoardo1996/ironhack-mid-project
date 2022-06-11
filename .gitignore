@@ -3,6 +3,9 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Temp data
+src/data/tmp/
+
 # C extensions
 *.so
 
