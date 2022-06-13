@@ -1,4 +1,4 @@
-from .query_00 import QUERY_00
+from .index import *
 
 # import os
 # __all__ = []
