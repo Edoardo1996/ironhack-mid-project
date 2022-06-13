@@ -1,1 +1,1 @@
-QUERY_00 = "select * from X01"
+QUERY_00 = "select * from credit_card_data"
