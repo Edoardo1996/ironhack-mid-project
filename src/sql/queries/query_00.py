@@ -1,0 +1,1 @@
+QUERY_00 = "select * from X01"

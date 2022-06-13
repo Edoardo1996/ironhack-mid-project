@@ -1,8 +1,6 @@
-from .query_01 import QUERY_01
-
+from .query_00 import QUERY_00
 
 # import os
-
 # __all__ = []
 # dirname = os.path.dirname(os.path.abspath(__file__))
 # print(dirname)

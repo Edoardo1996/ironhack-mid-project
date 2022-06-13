@@ -1,1 +1,0 @@
-QUERY_01 = "select * from X01"
