@@ -1,9 +1,10 @@
 """
-This script cleans and formats the raw dataset.
+Functions for loading and cleaning the dataset
 """
 
 import pandas as pd
 import sys
+import config
 
 
 def load_data(filepath):
@@ -15,9 +16,9 @@ def drop_nan(df):
     """Handles NaN in the dataset"""
     orig_size = len(df)
     df = df.dropna()  # only 24 rows contain NaN, for now I will drop them all
-    print('Dropped {} rows, {:.2f}% of original rows'. format(
-        orig_size-len(df), (orig_size-len(df))/len(df)*100
-    ))
+    # print('Dropped {} rows, {:.2f}% of original rows'. format(
+    #     orig_size-len(df), (orig_size-len(df))/len(df)*100
+    # ))
     return df
 
 
@@ -27,8 +28,8 @@ def format_data(df):
     df.columns = df.columns.str.replace(
         ' ', '_').str.lower()  # replace '#' with 'n'?
     # Change index if unique
-    if df['customer_number'].is_unique:
-        df = df.set_index('customer_number')
+    if df[config.index].is_unique:
+        df = df.set_index(config.index)
 
     return df
 
@@ -43,18 +44,3 @@ def dump_value_counts(path, df):
             print(df[col].value_counts(), end='\n'*3)
         sys.stdout = orig_stdout
     f.close()
-
-
-def main():
-    path = r'src/data/input/'
-    filename = 'creditcardmarketing.xlsx'
-    df = load_data(path+filename)
-    df = drop_nan(df)
-    df = format_data(df)
-    dump_value_counts('src/data/tmp/value_counts.txt', df)
-    # Save to .csv file for further elaboration
-    df.to_csv('src/data/output/credictcardmarketing.csv')
-
-
-if __name__ == '__main__':
-    main()
