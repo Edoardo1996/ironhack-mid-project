@@ -105,51 +105,6 @@ def apply_model(X_train, X_test, y_train, model, return_formula):
     
     return model.predict(X_test.dropna())
 
-def score_method(df, target, 
-                 model,
-                 return_formula=False,
-                 cols_to_encode=None,
-                 scaler=None, encoders=None,
-                 cols_to_drop=[],
-                 test_size=0.3, random_state=42,
-                 outsiders_thresh=None,
-                 skip_outsiders_cols = []):
-    """
-    Scores a Linear Regression Model, it assumes data is already cleaned
-
-    Parameters:
-    df (pd.DataFrame): Dataset for our model
-    target (str): Name of target column
-    outsiders_thresh (float): Threshold for the outliers
-    outsiders_cols (list): List of columns in which filter out the outliers
-    scaler (class): Scaling method for numerical data
-    encoder (list): Encoding methods for categorical data
-    cols_to_encode (list): Columns for encoding methods
-    model (class): ML model
-    
-
-    Returns:
-    r2 (float): r2 score of the method
-    mae(float): mean absolute error 
-    mse(float): mean squared error
-    """
-    df = df.drop(cols_to_drop, axis=1)
-    if outsiders_thresh:
-        df = remove_outliers(df,
-                            threshold=outsiders_thresh,
-                            skip_columns=skip_outsiders_cols + [target])
-    X_train, X_test, y_train, y_test = split_data(df, target, test_size, random_state)
-    if scaler:
-        scale_data(X_train, X_test, scaler)
-    if encoders:
-        X_train, X_test = encode_data(X_train, X_test, encoders, cols_to_encode)
-    predictions = apply_model(X_train, X_test, y_train, model, return_formula)
-
-    return (predictions,
-           r2_score(y_test, predictions),
-           mean_absolute_error(y_test, predictions),
-           mean_squared_error(y_test, predictions, squared=False))
-
 def save_results(path, results, append=True, variable=None):
     """Save results in a file
     Data is in format: r2, mae, mse"""
@@ -190,3 +145,95 @@ def knn_optimization(X_train, y_train, X_test, y_test, metric, k, show_plot=True
         plt.title(metric.__name__ + ' vs. K Value')
         plt.xlabel('K')
         plt.ylabel(metric.__name__)
+
+
+def score_regression_model(df, target, 
+                 model,
+                 return_formula=False,
+                 cols_to_encode=None,
+                 scaler=None, encoders=None,
+                 cols_to_drop=[],
+                 test_size=0.3, random_state=42,
+                 outsiders_thresh=None,
+                 skip_outsiders_cols = []):
+    """
+    Scores a Regression Model, it assumes data is already cleaned
+
+    Parameters:
+    df (pd.DataFrame): Dataset for our model
+    target (str): Name of target column
+    outsiders_thresh (float): Threshold for the outliers
+    scaler (class): Scaling method for numerical data
+    encoder (list): Encoding methods for categorical data
+    cols_to_encode (list): Columns for encoding methods
+    model (class): ML model for regression
+    
+
+    Returns:
+    predictions (np.array): predicted target values
+    r2 (float): r2 score of the method
+    mae(float): mean absolute error 
+    mse(float): mean squared error
+    """
+    df = df.drop(cols_to_drop, axis=1)
+    if outsiders_thresh:
+        df = remove_outliers(df,
+                            threshold=outsiders_thresh,
+                            skip_columns=skip_outsiders_cols + [target])
+    X_train, X_test, y_train, y_test = split_data(df, target, test_size, random_state)
+    if scaler:
+        scale_data(X_train, X_test, scaler)
+    if encoders:
+        X_train, X_test = encode_data(X_train, X_test, encoders, cols_to_encode)
+    predictions = apply_model(X_train, X_test, y_train, model, return_formula)
+
+    return (predictions,
+           r2_score(y_test, predictions),
+           mean_absolute_error(y_test, predictions),
+           mean_squared_error(y_test, predictions, squared=False))
+
+
+def score_classification_model(df, target, 
+                 model,
+                 return_formula=False,
+                 cols_to_encode=None,
+                 scaler=None, encoders=None,
+                 cols_to_drop=[],
+                 test_size=0.3, random_state=42,
+                 outsiders_thresh=None,
+                 skip_outsiders_cols = []):
+    """
+    Scores a Classification Model, it assumes data is already cleaned
+
+    Parameters:
+    df (pd.DataFrame): Dataset for our model
+    target (str): Name of target column
+    outsiders_thresh (float): Threshold for the outliers
+    scaler (class): Scaling method for numerical data
+    encoder (list): Encoding methods for categorical data
+    cols_to_encode (list): Columns for encoding methods
+    model (class): ML model for classification
+    
+
+    Returns:
+    predictions (np.array): predicted target values
+    r2 (float): r2 score of the method
+    mae(float): mean absolute error 
+    mse(float): mean squared error
+    """
+    df = df.drop(cols_to_drop, axis=1)
+    if outsiders_thresh:
+        df = remove_outliers(df,
+                            threshold=outsiders_thresh,
+                            skip_columns=skip_outsiders_cols + [target])
+    X_train, X_test, y_train, y_test = split_data(df, target, test_size, random_state)
+    if scaler:
+        scale_data(X_train, X_test, scaler)
+    if encoders:
+        X_train, X_test = encode_data(X_train, X_test, encoders, cols_to_encode)
+    predictions = apply_model(X_train, X_test, y_train, model, return_formula)
+
+    return (predictions,
+           r2_score(y_test, predictions),
+           mean_absolute_error(y_test, predictions),
+           mean_squared_error(y_test, predictions, squared=False))

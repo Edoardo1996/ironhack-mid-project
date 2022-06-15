@@ -6,10 +6,8 @@ basedir = path.abspath(path.dirname(__file__))
 load_dotenv(path.join(basedir, '.env'))
 
 
-# Clening config
+# Data cleaning
 index = environ.get('INDEX_DF')
-# db_user = environ.get('DATABASE_USERNAME')
-# db_password = environ.get('DATABASE_PASSWORD')
-# db_host = environ.get('DATABASE_HOST')
-# db_port = environ.get('DATABASE_PORT')
-# db_name = environ.get('DATABASE_NAME')
+orig_data_path = environ.get('ORIG_DATA_PATH')
+cleaned_data_path = environ.get('CLEANED_DATA_PATH')
+value_counts_path = environ.get('VALUE_COUNTS_PATH')
