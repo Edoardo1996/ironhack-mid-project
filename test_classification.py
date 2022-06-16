@@ -3,7 +3,7 @@ from src.utils.cleaning import *
 import src.utils.sktools as skt
 from sklearn.preprocessing import StandardScaler, OrdinalEncoder, OneHotEncoder
 from sklearn.linear_model import LogisticRegression
-from sklearn.neighbors import KNeighborsRegressor
+from sklearn.neighbors import KNeighborsClassifier
 pd.set_option('display.max_columns', None)
 
 def main():
@@ -13,7 +13,7 @@ def main():
     cols_onehot_encod = ['reward', 'mailer_type', 'overdraft_protection', 
                         'own_your_home']
     predictions, classification_report = skt.score_classification_model(
-        df=df, target='offer_accepted', model=LogisticRegression(solver='lbfgs'),
+        df=df, target='offer_accepted', model=KNeighborsClassifier(n_neighbors=5),
         cols_to_encode=[cols_ord_encod, cols_onehot_encod],
         scaler=StandardScaler(),
         encoders=[OrdinalEncoder(), OneHotEncoder()],
