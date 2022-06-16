@@ -2,10 +2,9 @@
 Module for loading and cleaning the dataset
 """
 
-from importlib_metadata import version
 import pandas as pd
 import sys
-import config
+from . import config
 import time
 
 def load_data(filepath, index_col=None):

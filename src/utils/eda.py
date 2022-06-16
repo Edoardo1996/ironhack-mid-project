@@ -7,8 +7,8 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-from cleaning import *
-import sktools as skt
+from .cleaning import *
+from . import sktools as skt
 from sklearn.preprocessing import StandardScaler, OrdinalEncoder, OneHotEncoder
 from sklearn.linear_model import LogisticRegression
 from sklearn.neighbors import KNeighborsClassifier
