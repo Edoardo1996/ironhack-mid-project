@@ -1,11 +1,11 @@
 """
-Functions for loading and cleaning the dataset
+Module for loading and cleaning the dataset
 """
 
 from importlib_metadata import version
 import pandas as pd
 import sys
-import src.utils.config as config
+import config
 import time
 
 def load_data(filepath, index_col=None):

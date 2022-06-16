@@ -1,8 +1,7 @@
 """
-Module with simple wrapper functions for classes and methods for EDA or analysis
-from scikit-learn
+Module for applying and scoring a ML model for a regression or classification problem.
+It defines a pipeline where outliers, encoders, scalers and ML model can be tuned.
 """
-from msilib.schema import Class
 import sys
 import os
 import pandas as pd
@@ -12,56 +11,8 @@ import seaborn as sns
 from sklearn.preprocessing import OrdinalEncoder, OneHotEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error, \
-                            confusion_matrix, classification_report
+    confusion_matrix, classification_report
 from sklearn.neighbors import KNeighborsRegressor
-
-
-
-def report(df: pd.DataFrame, nan_threshold: int = -1) -> pd.DataFrame:
-    """
-    Generates a report of the dataset, including NaN count,
-    data types and unique values in the column
-    TODO: include more features in the report
-
-    Parameters:
-    df (pandas.DataFrame): dataset
-    nan_threshold (int): treshold to filter nans.
-
-    Returns:
-    df_report (pandas.DataFrame)
-    """
-    # nan counting
-    cols = [col for col in df.columns if df[col].isna().sum() > nan_threshold]
-    nan_counts = df[cols].isna().sum()
-    # types
-    dtypes = df[cols].dtypes
-    # unique values
-    uniques = df.nunique()
-    df_report = pd.concat([nan_counts, dtypes, uniques], axis=1)
-    df_report.columns = ['nan_count', 'dtype', 'unique']
-    return df_report
-
-
-def show_corr_heatmap(df: pd.DataFrame, figsize: tuple, save_figure: bool = False,
-                      export_path: str = 'figs/corr_heatmap.png') -> None:
-    """
-    Creates half correlation heatmap for the dataset. 
-    TODO: print couples with highest correlation.
-
-    Parameters:
-    df (pandas.DataFrame): dataset
-    figsize (tuple): tuple with dimensions of figure
-    save_figure (bool): default is False, if True exports the heatmap.
-    export_path (str): path for the exported heatmap.
-    """
-    mask = np.zeros_like(df.corr())
-    mask[np.triu_indices_from(mask)] = True  # upper tridiagonal mask
-    fig, ax = plt.subplots(figsize=figsize)
-    ax = sns.heatmap(df.corr(), mask=mask, annot=True)
-    if save_figure:
-        if not os.path.isdir(export_path.split('/')[0]):
-            os.makedirs(export_path.split('/')[0])
-        plt.savefig(export_path, dpi=600)
 
 
 def remove_outliers(df: pd.DataFrame, skip_columns: list[str],
@@ -88,9 +39,10 @@ def remove_outliers(df: pd.DataFrame, skip_columns: list[str],
             lower_limit = lower - threshold * iqr
             df = df[(df[col] > lower_limit) & (df[col] < upper_limit)]
             assert not df.empty, 'Threshold too high for col: ' + col
-    print('Outliers removal has removed {} rows ({} % of initial size)'.format(
-        initial_size-len(df), round((1-len(df)/initial_size)*100, 2)
-    ))
+    if verbose:
+        print('Outliers removal has removed {} rows ({} % of initial size)'.format(
+            initial_size-len(df), round((1-len(df)/initial_size)*100, 2)
+        ))
     return df
 
 
@@ -147,7 +99,7 @@ def encode_data(X_train: np.array, X_test: np.array, encoders: list,
     X_test (np.array): Data of test features
     encoders (list): List of encoders to apply to corresponding cols_to_encode
     cols_to_encode(list[str]): list of columns in which apply the encoding
-    
+
     Returns:
     X_train (np.array): Data of training features encoded
     X_test (np.array): Data of test features encoded
@@ -182,7 +134,7 @@ def encode_data(X_train: np.array, X_test: np.array, encoders: list,
 
 
 def apply_model(X_train: np.array, X_test: np.array, y_train: np.array, model,
-                return_formula:bool) -> np.array:
+                return_formula: bool) -> np.array:
     """
     Apply a ML model to a scaled and encoded dataset
     """
@@ -194,6 +146,7 @@ def apply_model(X_train: np.array, X_test: np.array, y_train: np.array, model,
         print(model.intercept_, end='\n\n')
 
     return model.predict(X_test.dropna())
+
 
 def save_results(path, results, append=True, variable=None):
     """
@@ -285,9 +238,7 @@ def score_classification_model(df, target,
 
     Returns:
     predictions (np.array): predicted target values
-    r2 (float): r2 score of the method
-    mae(float): mean absolute error 
-    mse(float): mean squared error
+    classification_report: metrics for evaluation of the model
     """
     df = df.drop(cols_to_drop, axis=1)
     if outsiders_thresh:
@@ -304,6 +255,7 @@ def score_classification_model(df, target,
     predictions = apply_model(X_train, X_test, y_train, model, return_formula)
 
     return predictions, classification_report(y_test, predictions)
+
 
 def knn_optimization(X_train, y_train, X_test, y_test, metric, k, show_plot=True):
     """Try to find a optimal k for the KNNregression algoritmh
