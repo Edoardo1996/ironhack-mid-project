@@ -134,11 +134,14 @@ def encode_data(X_train: np.array, X_test: np.array, encoders: list,
 
 
 def apply_model(X_train: np.array, X_test: np.array, y_train: np.array, model,
-                return_formula: bool) -> np.array:
+                return_formula: bool, k:float) -> np.array:
     """
-    Apply a ML model to a scaled and encoded dataset
+    Apply a ML model to a scaled and encoded dataset.
+    # TODO: check istance of model class. For now is assumed that if k != None.
+    a KNClassifier is used.
     """
     model.fit(X_train, y_train)
+
     if return_formula:
         print('Coefficients:')
         print(model.coef_, end='\n\n')
@@ -222,7 +225,10 @@ def score_classification_model(df, target,
                                cols_to_drop=[],
                                test_size=0.3, random_state=42,
                                outsiders_thresh=None,
-                               skip_outsiders_cols=[]):
+                               skip_outsiders_cols=[],
+                               k=None,
+                               metric='r2_score',
+                               show_opt_plot=False):
     """
     Scores a Classification Model, it assumes data is already cleaned
 
@@ -234,6 +240,7 @@ def score_classification_model(df, target,
     encoder (list): Encoding methods for categorical data
     cols_to_encode (list): Columns for encoding methods
     model (class): ML model for classification
+    k(float): optional k if classifier is KN. if 'optimal', k is optimized
 
 
     Returns:
@@ -245,19 +252,28 @@ def score_classification_model(df, target,
         df = remove_outliers(df,
                              threshold=outsiders_thresh,
                              skip_columns=skip_outsiders_cols + [target])
+
     X_train, X_test, y_train, y_test = split_data(
         df, target, test_size, random_state)
+
     if scaler:
         scale_data(X_train, X_test, scaler)
+
     if encoders:
         X_train, X_test = encode_data(
             X_train, X_test, encoders, cols_to_encode)
-    predictions = apply_model(X_train, X_test, y_train, model, return_formula)
+
+    if k=='optimal': # TODO: when k is fixed?
+        k = knn_optimization(X_train, y_train, X_test, y_test,
+                                     metric, k, show_opt_plot)
+
+    predictions = apply_model(X_train, X_test, y_train, model,
+                                 return_formula, k)
 
     return predictions, classification_report(y_test, predictions)
 
 
-def knn_optimization(X_train, y_train, X_test, y_test, metric, k, show_plot=True):
+def knn_optimization(X_train, y_train, X_test, y_test, metric, k, show_plot):
     """Try to find a optimal k for the KNNregression algoritmh
 
     Parameters:
