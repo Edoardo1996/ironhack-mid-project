@@ -13,6 +13,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error, \
     confusion_matrix, classification_report
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
+from imblearn.over_sampling import SMOTE
+from imblearn.under_sampling import TomekLinks
 
 
 def remove_outliers(df: pd.DataFrame, skip_columns: list[str],
@@ -232,7 +234,9 @@ def score_classification_model(df, target,
                                k_range=None,
                                metric='r2_score',
                                show_opt_plot=False,
-                               **args):
+                               balance_dataset=False, 
+                               balancer = None, # Class for balancing data
+                                ):
     """
     Scores a Classification Model, it assumes data is already cleaned
 
@@ -266,8 +270,12 @@ def score_classification_model(df, target,
     if encoders:
         X_train, X_test = encode_data(
             X_train, X_test, encoders, cols_to_encode)
+    
+    # balancing
+    if balance_dataset:
+        X_train, y_train = balancer.fit_resample(X_train, y_train)
 
-    if k_range: # TODO: when k is fixed?
+    if k_range: # TODO: when k is not a range?
         opt_k = knn_class_optimization(X_train, y_train, X_test, y_test,
                                     k_range, show_opt_plot)
         predictions = apply_model(X_train, X_test, y_train, model,
@@ -333,3 +341,8 @@ def knn_class_optimization(X_train, y_train, X_test, y_test, k,
 
     k_opt = error_rate.index(min(error_rate))
     return k_opt, min(error_rate)
+
+
+# def balance_data(X_train: np.array, y_train: np.array, balancer):
+#     """Balance the dataset using a balance class"""
+#           balancer.fit_resample(X_train, y_train)
