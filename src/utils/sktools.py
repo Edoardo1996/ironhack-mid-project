@@ -12,7 +12,7 @@ from sklearn.preprocessing import OrdinalEncoder, OneHotEncoder
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error, \
     confusion_matrix, classification_report
-from sklearn.neighbors import KNeighborsRegressor
+from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 
 
 def remove_outliers(df: pd.DataFrame, skip_columns: list[str],
@@ -47,7 +47,7 @@ def remove_outliers(df: pd.DataFrame, skip_columns: list[str],
 
 
 def split_data(df: pd.date_range, target: str, test_size: float,
-               random_state: int):
+               random_state: int=4):
     """
     Split the dataset into random train and test subset
 
@@ -134,12 +134,15 @@ def encode_data(X_train: np.array, X_test: np.array, encoders: list,
 
 
 def apply_model(X_train: np.array, X_test: np.array, y_train: np.array, model,
-                return_formula: bool, k:float) -> np.array:
+                return_formula: bool, k:float==None) -> np.array:
     """
     Apply a ML model to a scaled and encoded dataset.
     # TODO: check istance of model class. For now is assumed that if k != None.
     a KNClassifier is used.
     """
+    if k:
+        # optimization have to be implemented
+        model = eval(str(model).strip('()')+'(n_neighbors={})'.format(k))
     model.fit(X_train, y_train)
 
     if return_formula:
@@ -219,16 +222,17 @@ def score_regression_model(df: pd.DataFrame, target: str, model,
 
 def score_classification_model(df, target,
                                model,
-                               return_formula=False,
+                               scaler, encoders,
                                cols_to_encode=None,
-                               scaler=None, encoders=None,
+                               return_formula=False,
                                cols_to_drop=[],
-                               test_size=0.3, random_state=42,
+                               test_size=0.25, random_state=42,
                                outsiders_thresh=None,
                                skip_outsiders_cols=[],
-                               k=None,
+                               k_range=None,
                                metric='r2_score',
-                               show_opt_plot=False):
+                               show_opt_plot=False,
+                               **args):
     """
     Scores a Classification Model, it assumes data is already cleaned
 
@@ -263,17 +267,19 @@ def score_classification_model(df, target,
         X_train, X_test = encode_data(
             X_train, X_test, encoders, cols_to_encode)
 
-    if k=='optimal': # TODO: when k is fixed?
-        k = knn_optimization(X_train, y_train, X_test, y_test,
-                                     metric, k, show_opt_plot)
-
-    predictions = apply_model(X_train, X_test, y_train, model,
-                                 return_formula, k)
+    if k_range: # TODO: when k is fixed?
+        opt_k = knn_class_optimization(X_train, y_train, X_test, y_test,
+                                    k_range, show_opt_plot)
+        predictions = apply_model(X_train, X_test, y_train, model,
+                                    return_formula, opt_k[0])
+    else:
+        predictions = apply_model(X_train, X_test, y_train, model,
+                                    return_formula, None) # TODO: to optimize
 
     return predictions, classification_report(y_test, predictions)
 
 
-def knn_optimization(X_train, y_train, X_test, y_test, metric, k, show_plot):
+def knn_regr_optimization(X_train, y_train, X_test, y_test, metric, k, show_plot):
     """Try to find a optimal k for the KNNregression algoritmh
 
     Parameters:
@@ -297,3 +303,33 @@ def knn_optimization(X_train, y_train, X_test, y_test, metric, k, show_plot):
         plt.title(metric.__name__ + ' vs. K Value')
         plt.xlabel('K')
         plt.ylabel(metric.__name__)
+
+def knn_class_optimization(X_train, y_train, X_test, y_test, k, 
+                           show_plot):
+    """Try to find a optimal k for the KNNregression algoritmh
+
+    Parameters:
+    metric(func): chosen metric for which k is studied 
+    k(list): list of chosen k for optimization
+
+    Returns:
+    """
+    # Plot error rates
+    error_rate = []
+    for i in range(1, max(k)):
+        knn = KNeighborsClassifier(n_neighbors=i)
+        knn.fit(X_train, y_train)
+        y_pred = knn.predict(X_test)
+        error_rate.append(np.mean(y_pred != y_test))
+
+    if show_plot:
+        plt.figure(figsize=(10, 6))
+        plt.plot(range(1, max(k)), error_rate, color='blue', linestyle='dashed',
+                 marker='o', markerfacecolor='red', markersize=10)
+        plt.title('Error Rate vs. K Value')
+        plt.xlabel('K')
+        plt.ylabel('Error Rate')
+        print("Minimum error:-",min(error_rate),"at K =",error_rate.index(min(error_rate)))
+
+    k_opt = error_rate.index(min(error_rate))
+    return k_opt, min(error_rate)

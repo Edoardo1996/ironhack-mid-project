@@ -89,7 +89,7 @@ def report_multicoll(df: pd.DataFrame, corr_thresh: float = 0.3, corr_method='pe
 
 def test():
     """Test the module"""
-    df = load_data(config.cleaned_data_path)
+    df = load_data(config.CLEANED_DATA_PATH)
     df_mult = report_multicoll(df)
     print(df_mult)
 

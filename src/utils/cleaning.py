@@ -33,8 +33,8 @@ def format_data(df):
     df.columns = df.columns.str.replace(' ', '_').str.lower() 
     df.columns = df.columns.str.replace('#_', '')
     # Change index if unique
-    if df[config.index].is_unique:
-        df = df.set_index(config.index)
+    if df[config.INDEX_DF].is_unique:
+        df = df.set_index(config.INDEX_DF)
     return df
 
 
