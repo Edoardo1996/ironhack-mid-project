@@ -175,6 +175,10 @@ def save_results(path, results, append=True, variable=None):
         f.write(' ' + str(variable) + '\n')
     f.close()
 
+def hyperparams_tuning():
+    """Tune selected ML model with chosen method and params"""
+    pass
+
 
 def score_regression_model(df: pd.DataFrame, target: str, model,
                            return_formula=False,
