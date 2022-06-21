@@ -2,13 +2,11 @@
 Module for EDA preprocessing.
 TODO: ,correlations heatmaps, distribution, outliers, imbalanced, chi2square, variance
 """
-from cgi import print_arguments
 import os
 import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-from zmq import curve_public
 from .cleaning import *
 import warnings
 warnings.simplefilter('ignore')
@@ -87,12 +85,30 @@ def report_multicoll(df: pd.DataFrame, corr_thresh: float = 0.3, corr_method='pe
     unique_couples =  [list(x) for x in set(tuple(x) for x in sorted_couples)]
     return create_multicoll_df(unique_couples, corr)
 
-def test():
-    """Test the module"""
-    df = load_data(config.CLEANED_DATA_PATH)
-    df_mult = report_multicoll(df)
-    print(df_mult)
+def plot_distributions(data, figsize):
+    """
+    Plot features distribute. Different distributions can be set for 
+    categoricals/numericals variable
+    """
+    for col in data: 
+        plt.figure(figsize=figsize)
+        if data[col].dtype in ['int64', 'float64']:
+            # data is numeric
+            sns.distplot(data[col])
+        else:
+            # data is categorical
+            sns.countplot(data[col])
 
-
-if __name__ == '__main__':
-    test()
+def plot_outliers(data, figsize):
+    """
+    Plot boxplot of outliers
+    """
+    for col in data: 
+        plt.figure(figsize=figsize)
+        if data[col].dtype in ['int64', 'float64']:
+            # data is numeric
+            sns.boxplot(data[col])
+        else:
+            # data is categorical
+            # sns.boxplot(x=col, y=config.TARGET, data=data)
+            pass
