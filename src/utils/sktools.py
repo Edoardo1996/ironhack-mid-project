@@ -4,17 +4,19 @@ It defines a pipeline where outliers, encoders, scalers and ML model can be tune
 """
 import sys
 import os
+from xml.sax.xmlreader import IncrementalParser
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.preprocessing import OrdinalEncoder, OneHotEncoder
+from sklearn.preprocessing import OrdinalEncoder, OneHotEncoder, FunctionTransformer
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error, \
     confusion_matrix, classification_report
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
 from imblearn.over_sampling import SMOTE
 from imblearn.under_sampling import TomekLinks
+from sklearn.utils import assert_all_finite
 
 
 def remove_outliers(df: pd.DataFrame, skip_columns: list[str],
@@ -83,11 +85,32 @@ def scale_data(X_train: np.array, X_test: np.array, scaler_class) -> None:
     X_test (np.array): Data of test features
     scaler_class (class): Class of scikit-learn for scaling the data
     """
-    scaler = scaler_class.fit(X_train.select_dtypes(np.number))
+    if not isinstance(scaler_class, FunctionTransformer):
+        scaler = scaler_class.fit(X_train.select_dtypes(np.number))
+    else:
+        scaler = scaler_class
+
     X_train_scaled = scaler.transform(X_train.select_dtypes(np.number))
     X_train[X_train.select_dtypes(np.number).columns] = X_train_scaled
     X_test_scaled = scaler.transform(X_test.select_dtypes(np.number))
     X_test[X_test.select_dtypes(np.number).columns] = X_test_scaled
+    
+    all_finite = np.all(np.isfinite(X_train.select_dtypes(np.number)).values)
+    if not all_finite:
+        X_test.replace([np.inf, -np.inf], np.nan, inplace=True)
+        X_train.replace([np.inf, -np.inf], np.nan, inplace=True)
+        X_train.dropna(inplace=True)
+        X_test.dropna(inplace=True)
+
+def uniform_after_scaling(X_train, y_train, X_test, y_test):
+    """
+    Uniform target and features after a row-dropping scaling
+    """
+    for X, y in zip([X_train, X_test], [y_train, y_test]):
+        index_to_drop = list(set(y.index) - set(X.index)) + \
+                        list(set(X.index) - set(y.index))
+        y.drop(index_to_drop, inplace=True)
+        assert len(X) == len(y), 'Features and target are not uniform'
 
 
 def encode_data(X_train: np.array, X_test: np.array, encoders: list,
@@ -270,6 +293,9 @@ def score_classification_model(df, target,
 
     if scaler:
         scale_data(X_train, X_test, scaler)
+        if len(X_train) != len(y_train): 
+            # Scaling has dropped some rows (log-transform). Uniform with target
+            uniform_after_scaling(X_train, y_train, X_test, y_test)
 
     if encoders:
         X_train, X_test = encode_data(
@@ -288,7 +314,7 @@ def score_classification_model(df, target,
         predictions = apply_model(X_train, X_test, y_train, model,
                                     return_formula, None) # TODO: to optimize
 
-    return predictions, classification_report(y_test, predictions)
+    return y_test, predictions, classification_report(y_test, predictions)
 
 
 def knn_regr_optimization(X_train, y_train, X_test, y_test, metric, k, show_plot):
@@ -347,6 +373,21 @@ def knn_class_optimization(X_train, y_train, X_test, y_test, k,
     return k_opt, min(error_rate)
 
 
-# def balance_data(X_train: np.array, y_train: np.array, balancer):
-#     """Balance the dataset using a balance class"""
-#           balancer.fit_resample(X_train, y_train)
+def boxcox_transform(df):
+    """Apply a boxcox transformation"""
+    numeric_cols = df.select_dtypes(np.number).columns
+    _ci = {column: None for column in numeric_cols}
+    for column in numeric_cols:
+        # since i know any columns should take negative numbers, to avoid -inf in df
+        df[column] = np.where(df[column]<=0, np.NAN, df[column]) 
+        df[column] = df[column].fillna(df[column].mean())
+        transformed_data, ci = stats.boxcox(df[column])
+        df[column] = transformed_data
+        _ci[column] = [ci] 
+    return df, _ci
+
+def log_transform(x):
+    if np.isfinite(np.log(x)):
+        return np.log(x)
+    else:
+        return np.NAN

@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix, roc_curve, auc
+from sklearn.metrics import confusion_matrix, recall_score, roc_curve, auc
 
 def plot_confusion_matrix(y_test, y_pred):
 
@@ -62,3 +62,39 @@ def plot_multiclass_roc(clf, X_test, y_test, n_classes, figsize=(17, 6)):
     ax.grid(alpha=.4)
     sns.despine()
     plt.show()
+
+def metric_plotter(params: dict, metric, all_true, all_pred, figsize=(10, 6),
+                    label=None):
+    """
+    Plot designated metric for model running with different params
+    """
+    # assert consistency for params and test-pred
+    assert len(all_true) == len(all_pred), 'Predictions and test are not consistent'
+    assert np.prod([len(values) for values in params.values()]) == len(all_pred), \
+        'Params not consistent with test and predictions'
+    
+    # Calculate required metric
+    if metric.__name__ == 'recall_score':
+        assert label, 'Trying to get recall score without defining a label'
+        metric_values = []
+        for true, pred in zip(all_true, all_pred):
+            if isinstance(pred, np.ndarray): 
+                metric_values.append(metric(true, pred, pos_label=label))
+            else:
+                metric_values.append(np.nan)
+
+    # Create report TODO: to a function that creates linear comb of n lists
+    cols = list(params.keys()) + [metric.__name__] # TODO: time of computations
+    all_labels = []
+    for param in params.keys():
+        line_labels = [param]
+        for i in range(1, len(params.keys())): # loop on all possible params
+            for j in range(len(list(params.values())[i])): # for i-param, append j-value
+                line_labels.append()
+
+
+
+    return metric_report
+    
+    
+
