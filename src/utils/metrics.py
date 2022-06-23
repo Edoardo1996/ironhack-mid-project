@@ -7,8 +7,8 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, recall_score, roc_curve, auc
 from sqlalchemy import asc
 
-def plot_confusion_matrix(y_test, y_pred):
 
+def plot_confusion_matrix(y_test, y_pred):
     """
     Plot a well-formatted confusion matrix for
     a classification prolem
@@ -26,17 +26,19 @@ def plot_confusion_matrix(y_test, y_pred):
                 group_names.append('True ' + unique_values[i])
             else:
                 group_names.append('False ' + unique_values[i])
-    
+
     # and labels
-    group_counts =  ["{0:0.0f}".format(value) for value in cf_matrix.flatten()]
-    group_percentages = ["{0:.2%}".format(value) for value in cf_matrix.flatten()/np.sum(cf_matrix)]
-    labels = [f"{v1}\n{v2}\n{v3}" for v1, v2, v3 in zip(group_names,group_counts,group_percentages)]
+    group_counts = ["{0:0.0f}".format(value) for value in cf_matrix.flatten()]
+    group_percentages = ["{0:.2%}".format(
+        value) for value in cf_matrix.flatten()/np.sum(cf_matrix)]
+    labels = [f"{v1}\n{v2}\n{v3}" for v1, v2, v3 in zip(
+        group_names, group_counts, group_percentages)]
     labels = np.asarray(labels).reshape(cf_matrix.shape)
     sns.heatmap(cf_matrix, annot=labels, fmt='', cmap='Blues')
 
 
 def plot_multiclass_roc(clf, X_test, y_test, n_classes, figsize=(17, 6)):
-    
+
     y_score = clf.predict_proba(X_test)
 
     # structures
@@ -59,46 +61,59 @@ def plot_multiclass_roc(clf, X_test, y_test, n_classes, figsize=(17, 6)):
     ax.set_ylabel('True Positive Rate')
     ax.set_title('Receiver operating characteristic example')
     for i in range(n_classes):
-        ax.plot(fpr[i], tpr[i], label='ROC curve (area = %0.2f) for label %i' % (roc_auc[i], i))
+        ax.plot(fpr[i], tpr[i], label='ROC curve (area = %0.2f) for label %i' % (
+            roc_auc[i], i))
     ax.legend(loc="best")
     ax.grid(alpha=.4)
     sns.despine()
     plt.show()
 
-def report_metrics(params: dict, metric, all_true, all_pred, label=None, 
-            sort_by_metric=False, show_plot=False, figsize=(10, 6)):
+def plot_params_metric():
+    """Plot metric variablity along changes of parameters optimization"""
+    pass
+
+def report_metrics(params: dict, metric, all_true, all_pred, label=None,
+                   sort_by_metric=False, show_plot=False, figsize=(10, 6)):
     """
-    Plot designated metric for model running with different params.
+    Report designated metric for model running with different params.
     TODO: Separate this function in sub-functions
     """
     # assert consistency for params and test-pred
-    assert len(all_true) == len(all_pred), 'Predictions and test are not consistent'
+    assert len(all_true) == len(
+        all_pred), 'Predictions and test are not consistent'
     assert np.prod([len(values) for values in params.values()]) == len(all_pred), \
         'Params not consistent with test and predictions'
-    
-    # Calculate required metric
-    if metric.__name__ == 'recall_score':
-        assert label, 'Trying to get recall score without defining a label'
-        metric_values = []
-        for true, pred in zip(all_true, all_pred):
-            if isinstance(pred, np.ndarray): 
+
+    # calculate metric values
+    metric_values = []
+    for true, pred in zip(all_true, all_pred):
+        if metric.__name__ == 'recall_score':
+            assert label, 'Trying to get recall score without defining a label'
+            if isinstance(pred, np.ndarray):
                 metric_values.append(metric(true, pred, pos_label=label))
             else:
                 metric_values.append(np.nan)
+        else:
+            if isinstance(pred, np.ndarray):
+                metric_values.append(metric(true, pred))
+            else:
+                metric_values.append(np.nan)
 
-    # Create report 
-    cols = list(params.keys()) + [metric.__name__] # TODO: time of computations
-    all_labels = np.array(list(itertools.product(*params.values()))) # cartesian product of params
-    data = np.concatenate((all_labels, 
-                    np.array(metric_values).reshape(len(metric_values), 1)),
-                    axis=1)
+    # Create report
+    # TODO: time of computations
+    cols = list(params.keys()) + [metric.__name__]
+    # cartesian product of params
+    all_labels = np.array(list(itertools.product(*params.values())))
+    data = np.concatenate((all_labels,
+                           np.array(metric_values).reshape(len(metric_values), 1)),
+                          axis=1)
     if sort_by_metric:
         report = pd.DataFrame(columns=cols, data=data).sort_values(
-                    by=metric.__name__, ascending=False).reset_index(drop=True)
+            by=metric.__name__, ascending=False).reset_index(drop=True)
     else:
         report = pd.DataFrame(columns=cols, data=data)
 
-    return report
-    
-    
+    # Plot if required by user
+    plot_params_metric()
 
+    return report

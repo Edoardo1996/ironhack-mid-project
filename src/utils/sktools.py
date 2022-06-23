@@ -51,7 +51,7 @@ def remove_outliers(df: pd.DataFrame, skip_columns: list[str],
 
 
 def split_data(df: pd.date_range, target: str, test_size: float,
-               random_state: int=4):
+               random_state: int = 4):
     """
     Split the dataset into random train and test subset
 
@@ -94,7 +94,7 @@ def scale_data(X_train: np.array, X_test: np.array, scaler_class) -> None:
     X_train[X_train.select_dtypes(np.number).columns] = X_train_scaled
     X_test_scaled = scaler.transform(X_test.select_dtypes(np.number))
     X_test[X_test.select_dtypes(np.number).columns] = X_test_scaled
-    
+
     all_finite = np.all(np.isfinite(X_train.select_dtypes(np.number)).values)
     if not all_finite:
         X_test.replace([np.inf, -np.inf], np.nan, inplace=True)
@@ -102,13 +102,14 @@ def scale_data(X_train: np.array, X_test: np.array, scaler_class) -> None:
         X_train.dropna(inplace=True)
         X_test.dropna(inplace=True)
 
+
 def uniform_after_scaling(X_train, y_train, X_test, y_test):
     """
     Uniform target and features after a row-dropping scaling
     """
     for X, y in zip([X_train, X_test], [y_train, y_test]):
         index_to_drop = list(set(y.index) - set(X.index)) + \
-                        list(set(X.index) - set(y.index))
+            list(set(X.index) - set(y.index))
         y.drop(index_to_drop, inplace=True)
         assert len(X) == len(y), 'Features and target are not uniform'
 
@@ -159,7 +160,7 @@ def encode_data(X_train: np.array, X_test: np.array, encoders: list,
 
 
 def apply_model(X_train: np.array, X_test: np.array, y_train: np.array, model,
-                return_formula: bool, k:float==None) -> np.array:
+                return_formula: bool, k: float == None) -> np.array:
     """
     Apply a ML model to a scaled and encoded dataset.
     # TODO: check istance of model class. For now is assumed that if k != None.
@@ -197,6 +198,7 @@ def save_results(path, results, append=True, variable=None):
     else:
         f.write(' ' + str(variable) + '\n')
     f.close()
+
 
 def hyperparams_tuning():
     """Tune selected ML model with chosen method and params"""
@@ -261,9 +263,9 @@ def score_classification_model(df, target,
                                k_range=None,
                                metric='r2_score',
                                show_opt_plot=False,
-                               balance_dataset=False, 
-                               balancer = None, # Class for balancing data
-                                ):
+                               balance_dataset=False,
+                               balancer=None,  # Class for balancing data
+                               ):
     """
     Scores a Classification Model, it assumes data is already cleaned
 
@@ -293,26 +295,26 @@ def score_classification_model(df, target,
 
     if scaler:
         scale_data(X_train, X_test, scaler)
-        if len(X_train) != len(y_train): 
+        if len(X_train) != len(y_train):
             # Scaling has dropped some rows (log-transform). Uniform with target
             uniform_after_scaling(X_train, y_train, X_test, y_test)
 
     if encoders:
         X_train, X_test = encode_data(
             X_train, X_test, encoders, cols_to_encode)
-    
+
     # balancing
     if balance_dataset:
         X_train, y_train = balancer.fit_resample(X_train, y_train)
 
-    if k_range: # TODO: when k is not a range?
+    if k_range:  # TODO: when k is not a range?
         opt_k = knn_class_optimization(X_train, y_train, X_test, y_test,
-                                    k_range, show_opt_plot)
+                                       k_range, show_opt_plot)
         predictions = apply_model(X_train, X_test, y_train, model,
-                                    return_formula, opt_k[0])
+                                  return_formula, opt_k[0])
     else:
         predictions = apply_model(X_train, X_test, y_train, model,
-                                    return_formula, None) # TODO: to optimize
+                                  return_formula, None)  # TODO: to optimize
 
     return y_test, predictions, classification_report(y_test, predictions)
 
@@ -342,7 +344,8 @@ def knn_regr_optimization(X_train, y_train, X_test, y_test, metric, k, show_plot
         plt.xlabel('K')
         plt.ylabel(metric.__name__)
 
-def knn_class_optimization(X_train, y_train, X_test, y_test, k, 
+
+def knn_class_optimization(X_train, y_train, X_test, y_test, k,
                            show_plot):
     """Try to find a optimal k for the KNNregression algoritmh
 
@@ -367,7 +370,8 @@ def knn_class_optimization(X_train, y_train, X_test, y_test, k,
         plt.title('Error Rate vs. K Value')
         plt.xlabel('K')
         plt.ylabel('Error Rate')
-        print("Minimum error:-",min(error_rate),"at K =",error_rate.index(min(error_rate)))
+        print("Minimum error:-", min(error_rate),
+              "at K =", error_rate.index(min(error_rate)))
 
     k_opt = error_rate.index(min(error_rate))
     return k_opt, min(error_rate)
@@ -379,12 +383,13 @@ def boxcox_transform(df):
     _ci = {column: None for column in numeric_cols}
     for column in numeric_cols:
         # since i know any columns should take negative numbers, to avoid -inf in df
-        df[column] = np.where(df[column]<=0, np.NAN, df[column]) 
+        df[column] = np.where(df[column] <= 0, np.NAN, df[column])
         df[column] = df[column].fillna(df[column].mean())
         transformed_data, ci = stats.boxcox(df[column])
         df[column] = transformed_data
-        _ci[column] = [ci] 
+        _ci[column] = [ci]
     return df, _ci
+
 
 def log_transform(x):
     if np.isfinite(np.log(x)):

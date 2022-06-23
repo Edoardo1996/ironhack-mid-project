@@ -64,10 +64,11 @@ def create_multicoll_df(unique_couples, corr):
     """Structure multicollinearity information in a DataFrame"""
     data = []
     for couple in unique_couples:
-        corr_value = corr[couple[1]].loc[corr.index==couple[0]].item()
+        corr_value = corr[couple[1]].loc[corr.index == couple[0]].item()
         data.append([couple[0], couple[1], corr_value])
     df_mult = pd.DataFrame(data=data, columns=['feat1', 'feat2', 'corr'])
     return df_mult.sort_values(by='feat1').reset_index(drop=True)
+
 
 def report_multicoll(df: pd.DataFrame, corr_thresh: float = 0.3, corr_method='pearson'):
     """Handles multicollinearity in the problem. """
@@ -80,17 +81,18 @@ def report_multicoll(df: pd.DataFrame, corr_thresh: float = 0.3, corr_method='pe
     for feature1 in masked_corr.index:
         feature2_lst = masked_corr.loc[feature1].dropna().index.tolist()
         multicoll_couples.extend([(feature1, feat2) for feat2 in feature2_lst])
-    
+
     sorted_couples = [sorted(couple) for couple in multicoll_couples]
-    unique_couples =  [list(x) for x in set(tuple(x) for x in sorted_couples)]
+    unique_couples = [list(x) for x in set(tuple(x) for x in sorted_couples)]
     return create_multicoll_df(unique_couples, corr)
+
 
 def plot_distributions(data, figsize):
     """
     Plot features distribute. Different distributions can be set for 
     categoricals/numericals variable
     """
-    for col in data: 
+    for col in data:
         plt.figure(figsize=figsize)
         if data[col].dtype in ['int64', 'float64']:
             # data is numeric
@@ -99,11 +101,12 @@ def plot_distributions(data, figsize):
             # data is categorical
             sns.countplot(data[col])
 
+
 def plot_outliers(data, figsize):
     """
     Plot boxplot of outliers
     """
-    for col in data: 
+    for col in data:
         plt.figure(figsize=figsize)
         if data[col].dtype in ['int64', 'float64']:
             # data is numeric
