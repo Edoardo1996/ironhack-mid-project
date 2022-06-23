@@ -1,5 +1,7 @@
 """Module for implementing metrics and optimizations"""
+from cProfile import label
 import itertools
+from matplotlib import markers
 import numpy as np
 import pandas as pd
 import seaborn as sns
@@ -68,12 +70,26 @@ def plot_multiclass_roc(clf, X_test, y_test, n_classes, figsize=(17, 6)):
     sns.despine()
     plt.show()
 
-def plot_params_metric():
-    """Plot metric variablity along changes of parameters optimization"""
-    pass
+def plot_params_metric(params, metric, report, figsize, hue):
+    """Plot metric variablity along changes of parameters optimization
+    TODO: accept multiple metrics"""
+    assert len(params.keys()) > 2, \
+            'More than two params handling is not implemented yet'
+    plt.figure(figsize)
+    # get x label (param different from set hue)
+    x_label = [param for param in params if param != hue][0]
+    plt.xlabel(x_label)
+    plt.ylabel(metric.__name__)
+    for param in report.hue.unique(): # loop on not-hue param
+        plt.plot(report[x_label].values, )
+    
+    # if different params were give to report_metrics, the plot
+    # should plot different line (or) color for each para
+    
 
 def report_metrics(params: dict, metric, all_true, all_pred, label=None,
-                   sort_by_metric=False, show_plot=False, figsize=(10, 6)):
+                   sort_by_metric=False, show_plot=False, figsize=(10, 6),
+                   hue=None):
     """
     Report designated metric for model running with different params.
     TODO: Separate this function in sub-functions
@@ -114,6 +130,7 @@ def report_metrics(params: dict, metric, all_true, all_pred, label=None,
         report = pd.DataFrame(columns=cols, data=data)
 
     # Plot if required by user
-    plot_params_metric()
+    if show_plot:
+        plot_params_metric(params, metric, report, figsize, 'models')
 
     return report
