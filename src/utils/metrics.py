@@ -1,9 +1,11 @@
 """Module for implementing metrics and optimizations"""
+import itertools
 import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 from sklearn.metrics import confusion_matrix, recall_score, roc_curve, auc
+from sqlalchemy import asc
 
 def plot_confusion_matrix(y_test, y_pred):
 
@@ -63,10 +65,11 @@ def plot_multiclass_roc(clf, X_test, y_test, n_classes, figsize=(17, 6)):
     sns.despine()
     plt.show()
 
-def metric_plotter(params: dict, metric, all_true, all_pred, figsize=(10, 6),
-                    label=None):
+def report_metrics(params: dict, metric, all_true, all_pred, label=None, 
+            sort_by_metric=False, show_plot=False, figsize=(10, 6)):
     """
-    Plot designated metric for model running with different params
+    Plot designated metric for model running with different params.
+    TODO: Separate this function in sub-functions
     """
     # assert consistency for params and test-pred
     assert len(all_true) == len(all_pred), 'Predictions and test are not consistent'
@@ -83,18 +86,19 @@ def metric_plotter(params: dict, metric, all_true, all_pred, figsize=(10, 6),
             else:
                 metric_values.append(np.nan)
 
-    # Create report TODO: to a function that creates linear comb of n lists
+    # Create report 
     cols = list(params.keys()) + [metric.__name__] # TODO: time of computations
-    all_labels = []
-    for param in params.keys():
-        line_labels = [param]
-        for i in range(1, len(params.keys())): # loop on all possible params
-            for j in range(len(list(params.values())[i])): # for i-param, append j-value
-                line_labels.append()
+    all_labels = np.array(list(itertools.product(*params.values()))) # cartesian product of params
+    data = np.concatenate((all_labels, 
+                    np.array(metric_values).reshape(len(metric_values), 1)),
+                    axis=1)
+    if sort_by_metric:
+        report = pd.DataFrame(columns=cols, data=data).sort_values(
+                    by=metric.__name__, ascending=False).reset_index(drop=True)
+    else:
+        report = pd.DataFrame(columns=cols, data=data)
 
-
-
-    return metric_report
+    return report
     
     
 
