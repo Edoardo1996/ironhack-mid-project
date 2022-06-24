@@ -10,10 +10,9 @@ import time
 def load_data(filepath, index_col=None):
     """Load an excel or a .csv file"""
     if filepath.endswith('.xlsx'):
-        df = pd.read_excel(filepath)
+        return pd.read_excel(filepath)
     else:
-        df = pd.read_csv(filepath, index_col=index_col)
-    return df
+        return pd.read_csv(filepath, index_col=index_col)
 
 
 def drop_nan(df, verbose=False):
@@ -34,15 +33,15 @@ def format_data(df):
     df.columns = df.columns.str.replace('#_', '')
     # Change index if unique
     if df[config.INDEX_DF].is_unique:
-        df = df.set_index(config.INDEX_DF)
-    return df
+        return df.set_index(config.INDEX_DF)
+
 
 
 def dump_value_counts(path, df, verbose=False):
     """Print value counts to a txt file for further exp"""
-    timestamp = time.strftime("%Y%m%d-%H%M%S")
+    timestamp = time.time() # TODO: check directory
     orig_stdout = sys.stdout
-    with open(path+timestamp, 'w', encoding='utf-8') as f:
+    with open(f"{path}/value_counts-{timestamp}.txt", 'w', encoding='utf-8') as f:
         sys.stdout = f
         for col in df.columns:
             print(col)

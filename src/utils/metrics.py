@@ -27,7 +27,7 @@ def plot_confusion_matrix(y_test, y_pred):
             if id_mat[i, j] == 1:
                 group_names.append('True ' + unique_values[i])
             else:
-                group_names.append('False ' + unique_values[i])
+                group_names.append('False ' + unique_values[j])
 
     # and labels
     group_counts = ["{0:0.0f}".format(value) for value in cf_matrix.flatten()]
@@ -73,15 +73,28 @@ def plot_multiclass_roc(clf, X_test, y_test, n_classes, figsize=(17, 6)):
 def plot_params_metric(params, metric, report, figsize, hue):
     """Plot metric variablity along changes of parameters optimization
     TODO: accept multiple metrics"""
-    assert len(params.keys()) > 2, \
+    assert len(params.keys()) <= 2, \
             'More than two params handling is not implemented yet'
-    plt.figure(figsize)
+    plt.figure(figsize=figsize)
     # get x label (param different from set hue)
     x_label = [param for param in params if param != hue][0]
-    plt.xlabel(x_label)
-    plt.ylabel(metric.__name__)
-    for param in report.hue.unique(): # loop on not-hue param
-        plt.plot(report[x_label].values, )
+    plt.xlabel(x_label, fontsize=16)
+    plt.ylabel(metric.__name__, fontsize=16)
+    if not hue:
+        # if hue has been set, we have to loop on its parameters.
+        hue = x_label
+        # set colors
+    for param in report[hue].unique(): # loop on not-hue param
+        if len(params.keys()) == 1:
+            plt.plot(report[x_label].astype('str'), report[metric.__name__],
+                    color='blue', linestyle='dashed',
+                    marker='o', markerfacecolor='red', markersize=10)
+        else:
+            plt.plot(report.sort_values(metric.__name__)[x_label].loc[report[hue]==param].astype('str'), 
+                    report.sort_values(metric.__name__)[metric.__name__].loc[report[hue]==param],
+                    linestyle='dashed', marker='o', markerfacecolor='red', markersize=10, label=param)
+            plt.legend()
+    plt.grid()
     
     # if different params were give to report_metrics, the plot
     # should plot different line (or) color for each para
@@ -131,6 +144,6 @@ def report_metrics(params: dict, metric, all_true, all_pred, label=None,
 
     # Plot if required by user
     if show_plot:
-        plot_params_metric(params, metric, report, figsize, 'models')
+        plot_params_metric(params, metric, report, figsize, hue)
 
     return report
