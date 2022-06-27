@@ -2,6 +2,7 @@
 Module for EDA preprocessing.
 """
 import os
+from pickle import NONE
 import warnings
 
 import matplotlib.pyplot as plt
@@ -32,7 +33,8 @@ def report(data: pd.DataFrame, nan_threshold: int = -1) -> pd.DataFrame:
         Report structured as a DataFrame
     """
     # nan counting
-    cols = [col for col in data.columns if data[col].isna().sum() > nan_threshold]
+    cols = [col for col in data.columns if data[col].isna().sum() >
+            nan_threshold]
     nan_counts = data[cols].isna().sum()
     # types
     dtypes = data[cols].dtypes
@@ -69,7 +71,7 @@ def show_corr_heatmap(data: pd.DataFrame, figsize: tuple, save_figure: bool = Fa
         plt.savefig(export_path, dpi=600)
 
 
-def create_multicoll_df(unique_couples, corr):
+def create_multicoll_df(unique_couples, corr: pd.DataFrame) -> pd.DataFrame:
     """
     Structure multicollinearity information in a DataFrame.
     It should not be called directly.
@@ -83,7 +85,7 @@ def create_multicoll_df(unique_couples, corr):
 
 
 def report_multicoll(data: pd.DataFrame, corr_thresh: float = 0.3,
-                                                 corr_method='pearson'):
+                     corr_method='pearson') -> pd.DataFrame:
     """
     Identify and report multicollinearity in a dataset.
 
@@ -99,27 +101,38 @@ def report_multicoll(data: pd.DataFrame, corr_thresh: float = 0.3,
 
     Returns:
     -------
-    
+    report: pandas.DataFrame
+        Report where features with multicollinearity are displayed together 
+        with their correlation coefficient.
     """
     corr = data.corr(method=corr_method)
+    # drop correlation below threshold or correlations with feature itself
     cond = (corr.apply(abs) < corr_thresh) | (corr == 1.0)
     masked_corr = corr.mask(cond)
     masked_corr = masked_corr.dropna(axis=1, how='all')
     masked_corr = masked_corr.dropna(axis=0, how='all')
+
+    # create unique features coupled with multicollinearity
     multicoll_couples = []
     for feature1 in masked_corr.index:
         feature2_lst = masked_corr.loc[feature1].dropna().index.tolist()
         multicoll_couples.extend([(feature1, feat2) for feat2 in feature2_lst])
-
     sorted_couples = [sorted(couple) for couple in multicoll_couples]
     unique_couples = [list(x) for x in set(tuple(x) for x in sorted_couples)]
     return create_multicoll_df(unique_couples, corr)
 
 
-def plot_distributions(data, figsize):
+def plot_distributions(data: pd.DataFrame, figsize: tuple) -> None:
     """
-    Plot features distribute. Different distributions can be set for 
-    categoricals/numericals variable
+    Plot features distribution. Different distributions can be set for 
+    categoricals/numericals variable.
+
+    Parameters:
+    ----------
+    data: pandas.DataFrame
+        Dataset
+    figsize: tuple
+        Dimensions of figure as (x, y)
     """
     for col in data:
         plt.figure(figsize=figsize)
@@ -131,16 +144,19 @@ def plot_distributions(data, figsize):
             sns.countplot(data[col])
 
 
-def plot_outliers(data, figsize):
+def plot_outliers(data: pd.DataFrame, figsize: tuple) -> None:
     """
-    Plot boxplot of outliers
+    Plot boxplot of outliers for chosen dataset
+
+    Parameters:
+    ----------
+    data: pandas.DataFrame
+        Dataset
+    figsize: tuple
+        Dimensions of figure as (x, y)
     """
     for col in data:
         plt.figure(figsize=figsize)
         if data[col].dtype in ['int64', 'float64']:
             # data is numeric
             sns.boxplot(data[col])
-        else:
-            # data is categorical
-            # sns.boxplot(x=col, y=config.TARGET, data=data)
-            pass
