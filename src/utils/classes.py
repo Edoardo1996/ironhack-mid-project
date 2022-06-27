@@ -15,7 +15,7 @@ class LogisticRegressionWithThreshold(LogisticRegression):
     documentation:
      <https://scikit-learn.org/stable/modules/generated/sklearn.linear_model.LogisticRegression.html>
     """
-    def predict(self, X, threshold: float=None):
+    def predict(self, X, threshold: float = None):
         """
         Predict class labels for samples in X.
 
