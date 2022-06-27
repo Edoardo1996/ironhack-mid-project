@@ -1,59 +1,68 @@
 """
 Module for EDA preprocessing.
-TODO: ,correlations heatmaps, distribution, outliers, imbalanced, chi2square, variance
 """
 import os
-import pandas as pd
-import numpy as np
-import seaborn as sns
-import matplotlib.pyplot as plt
-from .cleaning import *
 import warnings
+
+import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+import seaborn as sns
+from .cleaning import *
+
 warnings.simplefilter('ignore')
 pd.set_option('display.max_columns', None)
 
 
-def report(df: pd.DataFrame, nan_threshold: int = -1) -> pd.DataFrame:
+def report(data: pd.DataFrame, nan_threshold: int = -1) -> pd.DataFrame:
     """
     Generates a report of the dataset, including NaN count,
     data types and unique values in the column
     TODO: include more features in the report
 
     Parameters:
-    df (pandas.DataFrame): dataset
-    nan_threshold (int): treshold to filter nans.
+    ----------
+    data: pandas.DataFrame
+        Dataset
+    nan_threshold: int, default=-1
 
     Returns:
-    df_report (pandas.DataFrame)
+    --------
+    report: pandas.DataFrame
+        Report structured as a DataFrame
     """
     # nan counting
-    cols = [col for col in df.columns if df[col].isna().sum() > nan_threshold]
-    nan_counts = df[cols].isna().sum()
+    cols = [col for col in data.columns if data[col].isna().sum() > nan_threshold]
+    nan_counts = data[cols].isna().sum()
     # types
-    dtypes = df[cols].dtypes
+    dtypes = data[cols].dtypes
     # unique values
-    uniques = df.nunique()
-    df_report = pd.concat([nan_counts, dtypes, uniques], axis=1)
-    df_report.columns = ['nan_count', 'dtype', 'unique']
-    return df_report
+    uniques = data.nunique()
+    report = pd.concat([nan_counts, dtypes, uniques], axis=1)
+    report.columns = ['nan_count', 'dtype', 'unique']
+    return report
 
 
-def show_corr_heatmap(df: pd.DataFrame, figsize: tuple, save_figure: bool = False,
+def show_corr_heatmap(data: pd.DataFrame, figsize: tuple, save_figure: bool = False,
                       export_path: str = 'figs/corr_heatmap.png') -> None:
     """
     Creates half correlation heatmap for the dataset. 
-    TODO: print couples with highest correlation.
 
     Parameters:
-    df (pandas.DataFrame): dataset
-    figsize (tuple): tuple with dimensions of figure
-    save_figure (bool): default is False, if True exports the heatmap.
-    export_path (str): path for the exported heatmap.
+    ----------
+    data: pandas.DataFrame
+        dataset
+    figsize: tuple 
+        tuple with dimensions of figure as (x, y) coordinates
+    save_figure: bool, default = False
+        if True exports the heatmap to export_path
+    export_path. str, default = figs/corr_heatmap.png
+        Path for the exported heatmap
     """
-    mask = np.zeros_like(df.corr())
+    mask = np.zeros_like(data.corr())
     mask[np.triu_indices_from(mask)] = True  # upper tridiagonal mask
-    fig, ax = plt.subplots(figsize=figsize)
-    ax = sns.heatmap(df.corr(), mask=mask, annot=True)
+    plt.subplots(figsize=figsize)
+    sns.heatmap(data.corr(), mask=mask, annot=True)
     if save_figure:
         if not os.path.isdir(export_path.split('/')[0]):
             os.makedirs(export_path.split('/')[0])
@@ -61,7 +70,10 @@ def show_corr_heatmap(df: pd.DataFrame, figsize: tuple, save_figure: bool = Fals
 
 
 def create_multicoll_df(unique_couples, corr):
-    """Structure multicollinearity information in a DataFrame"""
+    """
+    Structure multicollinearity information in a DataFrame.
+    It should not be called directly.
+    """
     data = []
     for couple in unique_couples:
         corr_value = corr[couple[1]].loc[corr.index == couple[0]].item()
@@ -70,9 +82,26 @@ def create_multicoll_df(unique_couples, corr):
     return df_mult.sort_values(by='feat1').reset_index(drop=True)
 
 
-def report_multicoll(df: pd.DataFrame, corr_thresh: float = 0.3, corr_method='pearson'):
-    """Handles multicollinearity in the problem. """
-    corr = df.corr(method=corr_method)
+def report_multicoll(data: pd.DataFrame, corr_thresh: float = 0.3,
+                                                 corr_method='pearson'):
+    """
+    Identify and report multicollinearity in a dataset.
+
+    Parameters:
+    ----------
+    data: pandas.DataFrame
+        dataset
+    corr_thresh: float, default = 0.3
+        Correlation threshold that identifies multicollinearity.
+    corr_method: {'pearson', 'kendall', 'spearman'} or callable, default='pearson'
+        Method of correlation. For additional documentation refer to:
+        <https://pandas.pydata.org/docs/reference/api/pandas.DataFrame.corr.html>
+
+    Returns:
+    -------
+    
+    """
+    corr = data.corr(method=corr_method)
     cond = (corr.apply(abs) < corr_thresh) | (corr == 1.0)
     masked_corr = corr.mask(cond)
     masked_corr = masked_corr.dropna(axis=1, how='all')
