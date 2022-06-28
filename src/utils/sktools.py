@@ -417,15 +417,29 @@ def score_classification_model(data: pd.DataFrame,
     return y_test, predictions, classification_report(y_test, predictions)
 
 
-def knn_regr_optimization(X_train, y_train, X_test, y_test, metric, k, show_plot):
+def knn_regr_optimization(X_train: np.array, y_train: np.array,
+                          X_test: np.array, y_test: np.array,
+                          metric,
+                          k: list,
+                          show_plot: bool):
     """
     Find a optimal k for the KNNregression algorithm
-
+    TODO: refactor
     Parameters:
-    metric(func): chosen metric for which k is studied 
-    k(list): list of chosen k for optimization
-
-    Returns:
+    X_train: np.array
+        Data of training features
+    X_test: np.array
+        Data of test features
+    y_train: np.array
+        Data of train target
+    y_test: np.array
+        Data of test target
+    metric: Callable
+        Chosen metric for which k is studied 
+    k: list
+        List of chosen k for optimization
+    show_plot: bool
+        If True, plot the optimization algorithm
     """
     # Plot error rates
     rate = []  # list of metric calculations
@@ -443,16 +457,35 @@ def knn_regr_optimization(X_train, y_train, X_test, y_test, metric, k, show_plot
         plt.xlabel('K')
         plt.ylabel(metric.__name__)
 
-
-def knn_class_optimization(X_train, y_train, X_test, y_test, k,
-                           show_plot):
-    """Try to find a optimal k for the KNNregression algoritmh
-
+def knn_class_optimization(X_train: np.array, y_train: np.array,
+                          X_test: np.array, y_test: np.array,
+                          k: list,
+                          show_plot: bool):
+    """
+    Find a optimal k for the KNN Classification algorithm
+    TODO: refactor
     Parameters:
-    metric(func): chosen metric for which k is studied 
-    k(list): list of chosen k for optimization
-
+    X_train: np.array
+        Data of training features
+    X_test: np.array
+        Data of test features
+    y_train: np.array
+        Data of train target
+    y_test: np.array
+        Data of test target
+    metric: Callable
+        Chosen metric for which k is studied 
+    k: list
+        List of chosen k for optimization
+    show_plot: bool
+        If True, plot the optimization algorithm
+    
     Returns:
+    -------
+    k_opt: float
+        Optimal k for the algorithm
+    min(error_rate): float
+        Minimum error rate for k_opt
     """
     # Plot error rates
     error_rate = []
@@ -477,11 +510,12 @@ def knn_class_optimization(X_train, y_train, X_test, y_test, k,
 
 
 def boxcox_transform(df):
-    """Apply a boxcox transformation"""
+    """
+    Apply a boxcox transformation
+    """
     numeric_cols = df.select_dtypes(np.number).columns
     _ci = {column: None for column in numeric_cols}
     for column in numeric_cols:
-        # since i know any columns should take negative numbers, to avoid -inf in df
         df[column] = np.where(df[column] <= 0, np.NAN, df[column])
         df[column] = df[column].fillna(df[column].mean())
         transformed_data, ci = stats.boxcox(df[column])
@@ -491,6 +525,10 @@ def boxcox_transform(df):
 
 
 def log_transform(x):
+    """
+    Apply a logarithmic trandormation.
+    Returns a NaN if x <= 0
+    """
     if np.isfinite(np.log(x)):
         return np.log(x)
     else:
