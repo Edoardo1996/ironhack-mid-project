@@ -1,19 +1,27 @@
-"""Module for implementing metrics and optimizations"""
-from cProfile import label
+"""
+Module for implementing metrics and optimizations
+"""
 import itertools
-from matplotlib import markers
+from typing import OrderedDict
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 import seaborn as sns
-import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix, recall_score, roc_curve, auc
-from sqlalchemy import asc
+from sklearn.metrics import confusion_matrix, roc_curve, auc
 
 
-def plot_confusion_matrix(y_test, y_pred):
+def plot_confusion_matrix(y_test, y_pred) -> None:
     """
     Plot a well-formatted confusion matrix for
-    a classification prolem
+    a classification prolem results.
+
+    Parameters:
+    ----------
+    y_true : array-like
+        Ground truth (correct) target values.
+
+    y_pred : array-like
+        Estimated target values as returned by a classifier.
     """
     # confusion matrix
     cf_matrix = confusion_matrix(y_test, y_pred)
@@ -36,11 +44,30 @@ def plot_confusion_matrix(y_test, y_pred):
     labels = [f"{v1}\n{v2}\n{v3}" for v1, v2, v3 in zip(
         group_names, group_counts, group_percentages)]
     labels = np.asarray(labels).reshape(cf_matrix.shape)
+
+    # show plot TODO: export plot
     sns.heatmap(cf_matrix, annot=labels, fmt='', cmap='Blues')
 
 
-def plot_multiclass_roc(clf, X_test, y_test, n_classes, figsize=(17, 6)):
+def plot_multiclass_roc(clf, X_test, y_test, n_classes: int, 
+                                                figsize=(17, 6)) -> None:
+    """
+    Plot the Compute Receiver operating characteristic (ROC).
+    Note: this implementation is restricted to the binary classification task.
 
+    Parameters:
+    ----------
+    clf: classifier
+        Classifier used to estimate the target values
+    X_test: matrix-like
+        Features used for testing.
+    y_test: array-like
+        Correct values for target
+    n_classes: int
+        Number of classes of target
+    figsize: tuple, default = (17, 6)
+        Size of the figure as (x, y)
+    """
     y_score = clf.predict_proba(X_test)
 
     # structures
@@ -55,7 +82,7 @@ def plot_multiclass_roc(clf, X_test, y_test, n_classes, figsize=(17, 6)):
         roc_auc[i] = auc(fpr[i], tpr[i])
 
     # roc for each class
-    fig, ax = plt.subplots(figsize=figsize)
+    ax = plt.subplots(figsize=figsize)
     ax.plot([0, 1], [0, 1], 'k--')
     ax.set_xlim([0.0, 1.0])
     ax.set_ylim([0.0, 1.05])
@@ -70,9 +97,22 @@ def plot_multiclass_roc(clf, X_test, y_test, n_classes, figsize=(17, 6)):
     sns.despine()
     plt.show()
 
-def plot_params_metric(params, metric, report, figsize, hue):
-    """Plot metric variablity along changes of parameters optimization
-    TODO: accept multiple metrics"""
+def plot_params_metric(params: OrderedDict, metric, report, figsize, hue) -> None:
+    """
+    Plot metric variablity along changes of parameters optimization.
+    It should not be called directly.
+
+    Parameters:
+    ----------
+    Params: OrderedDict
+    metric: Callable
+    report: pandas.DataFrame
+        metric report. 
+    figsize: tuple
+        Size of the figure as (x, y)
+    hue: str
+        Grouping variable that will produce points with different colors.
+    """
     assert len(params.keys()) <= 2, \
             'More than two params handling is not implemented yet'
     plt.figure(figsize=figsize)
@@ -96,22 +136,45 @@ def plot_params_metric(params, metric, report, figsize, hue):
             plt.legend()
     plt.grid()
     
-    # if different params were give to report_metrics, the plot
-    # should plot different line (or) color for each para
-    
 
-def report_metrics(params: dict, metric, all_true, all_pred, label=None,
+def report_metrics(params: OrderedDict, metric, all_true, all_pred, label=None,
                    sort_by_metric=False, show_plot=False, figsize=(10, 6),
-                   hue=None):
+                   hue=None) -> pd.DataFrame:
     """
     Report designated metric for model running with different params.
     TODO: Separate this function in sub-functions
+    TODO: Error handling
+    TODO: Refactoring the function
+    TODO: Add time of computations
+    Parameters:
+    ----------
+    params: OrderedDict
+    metric: Callable
+    all_true: array-like
+        Array-like with all the real values for target for each param
+    all_pred: array-like
+        Array-like with all the predicted values for target for each param
+    label: str, default=None
+        Label for the recall calculation
+    sort_by_metric: bool, default=False
+        If True, metric will be sorted with descending order
+    show_plot: bool, default=False
+        If True, plot of the metrics will be shown
+    figsize: tuple, default = (10, 6)
+        Size of the figure as (x, y)
+    hue: str, default=None
+        Grouping variable that will produce points with different colors.
+
+    Returns:
+    -------
+    report: pandas.DataFrame
+        Report with the metric and params.
     """
     # assert consistency for params and test-pred
-    assert len(all_true) == len(
-        all_pred), 'Predictions and test are not consistent'
-    assert np.prod([len(values) for values in params.values()]) == len(all_pred), \
-        'Params not consistent with test and predictions'
+    if len(all_true) != len(all_pred):
+        raise Exception('Predictions and test are not consistent')
+    if np.prod([len(values) for values in params.values()]) == len(all_pred):
+        raise Exception('Params not consistent with test and predictions')
 
     # calculate metric values
     metric_values = []
@@ -129,7 +192,6 @@ def report_metrics(params: dict, metric, all_true, all_pred, label=None,
                 metric_values.append(np.nan)
 
     # Create report
-    # TODO: time of computations
     cols = list(params.keys()) + [metric.__name__]
     # cartesian product of params
     all_labels = np.array(list(itertools.product(*params.values())))
