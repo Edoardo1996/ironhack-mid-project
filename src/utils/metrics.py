@@ -3,6 +3,7 @@ Module for implementing metrics and optimizations
 """
 import itertools
 from typing import OrderedDict
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -49,8 +50,8 @@ def plot_confusion_matrix(y_test, y_pred) -> None:
     sns.heatmap(cf_matrix, annot=labels, fmt='', cmap='Blues')
 
 
-def plot_multiclass_roc(clf, X_test, y_test, n_classes: int, 
-                                                figsize=(17, 6)) -> None:
+def plot_multiclass_roc(clf, X_test, y_test, n_classes: int,
+                        figsize=(17, 6)) -> None:
     """
     Plot the Compute Receiver operating characteristic (ROC).
     Note: this implementation is restricted to the binary classification task.
@@ -97,6 +98,7 @@ def plot_multiclass_roc(clf, X_test, y_test, n_classes: int,
     sns.despine()
     plt.show()
 
+
 def plot_params_metric(params: OrderedDict, metric, report, figsize, hue) -> None:
     """
     Plot metric variablity along changes of parameters optimization.
@@ -114,7 +116,7 @@ def plot_params_metric(params: OrderedDict, metric, report, figsize, hue) -> Non
         Grouping variable that will produce points with different colors.
     """
     assert len(params.keys()) <= 2, \
-            'More than two params handling is not implemented yet'
+        'More than two params handling is not implemented yet'
     plt.figure(figsize=figsize)
     # get x label (param different from set hue)
     x_label = [param for param in params if param != hue][0]
@@ -124,18 +126,19 @@ def plot_params_metric(params: OrderedDict, metric, report, figsize, hue) -> Non
         # if hue has been set, we have to loop on its parameters.
         hue = x_label
         # set colors
-    for param in report[hue].unique(): # loop on not-hue param
+    for param in report[hue].unique():  # loop on not-hue param
         if len(params.keys()) == 1:
             plt.plot(report[x_label].astype('str'), report[metric.__name__],
-                    color='blue', linestyle='dashed',
-                    marker='o', markerfacecolor='red', markersize=10)
+                     color='blue', linestyle='dashed',
+                     marker='o', markerfacecolor='red', markersize=10)
         else:
-            plt.plot(report.sort_values(metric.__name__)[x_label].loc[report[hue]==param].astype('str'), 
-                    report.sort_values(metric.__name__)[metric.__name__].loc[report[hue]==param],
-                    linestyle='dashed', marker='o', markerfacecolor='red', markersize=10, label=param)
+            plt.plot(report.sort_values(metric.__name__)[x_label].loc[report[hue] == param].astype('str'),
+                     report.sort_values(metric.__name__)[
+                metric.__name__].loc[report[hue] == param],
+                linestyle='dashed', marker='o', markerfacecolor='red', markersize=10, label=param)
             plt.legend()
     plt.grid()
-    
+
 
 def report_metrics(params: OrderedDict, metric, all_true, all_pred, label=None,
                    sort_by_metric=False, show_plot=False, figsize=(10, 6),

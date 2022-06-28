@@ -2,73 +2,86 @@
 Module for applying and scoring a ML model for a regression or classification problem.
 It defines a pipeline where outliers, encoders, scalers and ML model can be tuned.
 """
-import sys
 import os
-from xml.sax.xmlreader import IncrementalParser
-import pandas as pd
-import numpy as np
+import sys
+
 import matplotlib.pyplot as plt
-import seaborn as sns
-from sklearn.preprocessing import OrdinalEncoder, OneHotEncoder, FunctionTransformer
+import numpy as np
+import pandas as pd
+from scipy import stats
+from sklearn.metrics import classification_report, mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error, \
-    confusion_matrix, classification_report
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
-from imblearn.over_sampling import SMOTE
-from imblearn.under_sampling import TomekLinks
-from sklearn.utils import assert_all_finite
+from sklearn.preprocessing import FunctionTransformer, OneHotEncoder, OrdinalEncoder
 
 
-def remove_outliers(df: pd.DataFrame, skip_columns: list[str],
+def remove_outliers(data: pd.DataFrame, skip_columns: list[str],
                     threshold: float = 1.5, verbose: bool = False) -> pd.DataFrame:
     """
     Removes outliers from the dataset.
 
     Parameters:
-    df (pandas.DataFrame): dataset
-    skip_columns (list[str]): Columns for which outliers are not removed
-    threshold (float): Threshold for removal of outliers
-    verbose (bool): Default False, if True print details of removal of outliers
+    ----------
+    data: pandas.DataFrame
+        Datasert
+    skip_columns: list[str]
+        Columns for which outliers are not removed
+    threshold: float, default=1.5
+        Threshold for removal of outliers
+    verbose: bool, default=False,
+        if True print details of removal of outliers
 
     Returns:
-    df (pandas.DataFrame): dataset without outliers
+    -------
+    data: pandas.DataFrame
+        Dataset without outliers
     """
-    initial_size = len(df)
-    for col in df.select_dtypes(np.number).columns:
+    initial_size = len(data)
+    for col in data.select_dtypes(np.number).columns:
         if col not in skip_columns:
-            upper = np.percentile(df[col], 75)
-            lower = np.percentile(df[col], 25)
+            upper = np.percentile(data[col], 75)
+            lower = np.percentile(data[col], 25)
             iqr = upper - lower
             upper_limit = upper + threshold * iqr
             lower_limit = lower - threshold * iqr
-            df = df[(df[col] > lower_limit) & (df[col] < upper_limit)]
-            assert not df.empty, 'Threshold too high for col: ' + col
+            data = data[(data[col] > lower_limit) & (data[col] < upper_limit)]
+            assert not data.empty, 'Threshold too high for col: ' + col
     if verbose:
         print('Outliers removal has removed {} rows ({} % of initial size)'.format(
-            initial_size-len(df), round((1-len(df)/initial_size)*100, 2)
+            initial_size-len(data), round((1-len(data)/initial_size)*100, 2)
         ))
-    return df
+    return data
 
 
-def split_data(df: pd.date_range, target: str, test_size: float,
-               random_state: int = 4):
+def split_data(data: pd.DataFrame, target: str, test_size: float = 0.3,
+               random_state: int = 42):
     """
     Split the dataset into random train and test subset
 
     Parameters:
-    df (pandas.DataFrame): dataset
-    target (str): column that denotes the target for predictions
-    test_size (float): size of the training subset
-    random_state (int): Controls the shuffling applied to the data before the split.
+    ----------
+    data: pandas.DataFrame
+        Dataset
+    target: str
+        Column that denotes the target for predictions
+    test_size: float, default=0.3
+        Size of the test subset
+    random_state: int, default=42
+        Controls the shuffling applied to the data before the split.
 
     Returns:
-    X_train (np.array): Data of training features
-    X_test (np.array): Data of test features
-    y_train (np.array): Data of train target
-    y_test (np.array): Data of test target
+    -------
+    X_train: np.array
+        Data of training features
+    X_test: np.array
+        Data of test features
+    y_train: np.array)
+        Data of train target
+    y_test: np.array
+        Data of test target
     """
-    X = df.drop([target], axis=1)
-    y = df[target]
+    X = data.drop([target], axis=1)
+    y = data[target]
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=test_size, random_state=random_state
     )
@@ -79,11 +92,16 @@ def scale_data(X_train: np.array, X_test: np.array, scaler_class) -> None:
     """
     Fit chosen scaler class from scikit-learn on training data and transforms
     both training and test data.
+    TODO: reduce lines
 
     Parameters:
-    X_train (np.array): Data of training features
-    X_test (np.array): Data of test features
-    scaler_class (class): Class of scikit-learn for scaling the data
+    ----------
+    X_train: np.array
+        Data of training features
+    X_test: np.array
+        Data of test features
+    scaler_class: Callable
+        Class of scikit-learn for scaling the data
     """
     if not isinstance(scaler_class, FunctionTransformer):
         scaler = scaler_class.fit(X_train.select_dtypes(np.number))
@@ -105,7 +123,7 @@ def scale_data(X_train: np.array, X_test: np.array, scaler_class) -> None:
 
 def uniform_after_scaling(X_train, y_train, X_test, y_test):
     """
-    Uniform target and features after a row-dropping scaling
+    Uniform target and features after a row-dropping scaling.
     """
     for X, y in zip([X_train, X_test], [y_train, y_test]):
         index_to_drop = list(set(y.index) - set(X.index)) + \
@@ -119,16 +137,24 @@ def encode_data(X_train: np.array, X_test: np.array, encoders: list,
     """
     Fit chosen encoding class from scikit-learn on training data and transforms
     both training and test data.
+    TODO: refactor
 
     Parameters:
-    X_train (np.array): Data of training features
-    X_test (np.array): Data of test features
-    encoders (list): List of encoders to apply to corresponding cols_to_encode
-    cols_to_encode(list[str]): list of columns in which apply the encoding
+    ----------
+    X_train: np.array
+        Data of training features
+    X_test: np.array
+        Data of test features
+    encoders: list
+        List of encoders to apply to corresponding cols_to_encode
+    cols_to_encode: list[str]
+        List of columns in which apply the encoding
 
     Returns:
-    X_train (np.array): Data of training features encoded
-    X_test (np.array): Data of test features encoded
+    X_train: np.array
+        Data of encoded training features
+    X_test: np.array
+        Data of encoded test features
     """
     for encoder, cols in zip(encoders, cols_to_encode):  # loop on chosen encoders and columns
         if (isinstance(encoder, OrdinalEncoder)) and bool(list(cols)):
@@ -154,17 +180,33 @@ def encode_data(X_train: np.array, X_test: np.array, encoders: list,
                 X_test_onehot_encoded)
         elif bool(list(cols)):
             # Columns are present but no encoder was recognized
-            sys.exit("Encoder not recognized, please use another")
+            raise ValueError("Encoder not recognized, please use another")
 
     return X_train, X_test
 
 
 def apply_model(X_train: np.array, X_test: np.array, y_train: np.array, model,
-                return_formula: bool, k: float == None) -> np.array:
+                return_formula: bool, k: int == None) -> np.array:
     """
     Apply a ML model to a scaled and encoded dataset.
     # TODO: check istance of model class. For now is assumed that if k != None.
-    a KNClassifier is used.
+    a KNClassifier or KNRegressor is used.
+
+    Parameters:
+    ----------
+    X_train: np.array
+        Data of training features
+    X_test: np.array
+        Data of test features
+    y_train: np.array)
+        Data of train target
+    model: Callable
+        ML model (classifier or regressor)
+    return_forumula: bool
+        If True, returns the mathematical coefficients and intercept of a linear
+        model. Fails if model is not linear
+    k: int, default=None
+        Number of neighbors to use for a KNClassifier or KNRegressor
     """
     if k:
         # optimization have to be implemented
@@ -184,7 +226,7 @@ def save_results(path, results, append=True, variable=None):
     """
     Save results and metrics in a file for further manipulation
     Data is in format: r2, mae, mse
-    TODO: function should save in a file user-defined metrics too.
+    TODO: refactor
     """
     if not os.path.isdir(path.split('/')[0]):
         os.makedirs(path.split('/')[0])
@@ -199,45 +241,68 @@ def save_results(path, results, append=True, variable=None):
         f.write(' ' + str(variable) + '\n')
     f.close()
 
-
-def hyperparams_tuning():
-    """Tune selected ML model with chosen method and params"""
-    pass
-
-
-def score_regression_model(df: pd.DataFrame, target: str, model,
-                           return_formula=False,
-                           cols_to_encode=None,
-                           scaler=None, encoders=None,
-                           cols_to_drop=[],
-                           test_size=0.3, random_state=42,
-                           outsiders_thresh=None,
-                           skip_outsiders_cols=[]):
+def score_regression_model(data: pd.DataFrame, 
+                           target: str, 
+                           model,
+                           return_formula: bool = False,
+                           cols_to_encode: list[str] = None,
+                           scaler=None,
+                           encoders=None,
+                           cols_to_drop: list[str] = [],
+                           test_size: float = 0.3, 
+                           random_state: int = 42,
+                           outsiders_thresh: float = None,
+                           skip_outsiders_cols: list[str] = []):
     """
     Scores a Regression Model, it assumes data is already cleaned
 
     Parameters:
-    df (pd.DataFrame): Dataset for our model
-    target (str): Name of target column
-    outsiders_thresh (float): Threshold for the removal of outliers
-    scaler (class): Scaling method for numerical data
-    encoder (list): Encoding methods for categorical data
-    cols_to_encode (list): Columns for encoding methods
-    model (class): ML model for regression
-
+    ----------
+    data: pandas.DataFrame: 
+        Dataset for the model
+    target: str
+        Name of target column
+    model: Callable
+        ML model for regression
+    outsiders_thresh: float
+        Threshold for the removal of outliers
+    return_forumula: bool
+        If True, returns the mathematical coefficients and intercept of a linear model
+    cols_to_encode: list[str]
+        List of columns in which apply the encoding
+    scaler: Callable
+        Class of scikit-learn for scaling the data
+    encoders: list[Callable]
+        List of encoders to apply to corresponding cols_to_encode
+    cols_to_drop: list[str]
+        List of columns' names to be dropped from the dataset
+    test_size: float, default=0.3
+            Size of the test subset
+    random_state: int, default=42
+        Controls the shuffling applied to the data before the split.
+    outsiders_thresh: float
+        Threshold for the removal of outliers
+    skip_outsiders_cols: list[str]
+        Columns for which outliers are not removed
+    
     Returns:
-    predictions (np.array): predicted target values
-    r2 (float): r2 score of the method
-    mae(float): mean absolute error 
-    mse(float): mean squared error
+    -------
+    predictions: numpy.array
+        Predicted target values
+    r2: float
+        r2 score of the method
+    mae: float
+        Mean absolute error 
+    mse: float
+        Mean squared error
     """
-    df = df.drop(cols_to_drop, axis=1)
+    data = data.drop(cols_to_drop, axis=1)
     if outsiders_thresh:
-        df = remove_outliers(df,
+        data = remove_outliers(data,
                              threshold=outsiders_thresh,
                              skip_columns=skip_outsiders_cols + [target])
     X_train, X_test, y_train, y_test = split_data(
-        df, target, test_size, random_state)
+        data, target, test_size, random_state)
     if scaler:
         scale_data(X_train, X_test, scaler)
     if encoders:
@@ -251,38 +316,71 @@ def score_regression_model(df: pd.DataFrame, target: str, model,
             mean_squared_error(y_test, predictions, squared=False))
 
 
-def score_classification_model(df, target,
+def score_classification_model(data: pd.DataFrame, 
+                               target: str, 
                                model,
-                               scaler, encoders,
-                               cols_to_encode=None,
-                               return_formula=False,
-                               cols_to_drop=[],
-                               test_size=0.25, random_state=42,
-                               outsiders_thresh=None,
-                               skip_outsiders_cols=[],
+                               return_formula: bool = False,
+                               cols_to_encode: list[str] = None,
+                               scaler=None,
+                               encoders=None,
+                               cols_to_drop: list[str] = [],
+                               test_size: float = 0.3, 
+                               random_state: int = 42,
+                               outsiders_thresh: float = None,
+                               skip_outsiders_cols: list[str] = [],
                                k_range=None,
-                               metric='r2_score',
                                show_opt_plot=False,
                                balance_dataset=False,
-                               balancer=None,  # Class for balancing data
+                               balancer=None, 
                                ):
     """
     Scores a Classification Model, it assumes data is already cleaned
 
     Parameters:
-    df (pd.DataFrame): Dataset for our model
-    target (str): Name of target column
-    outsiders_thresh (float): Threshold for the outliers
-    scaler (class): Scaling method for numerical data
-    encoder (list): Encoding methods for categorical data
-    cols_to_encode (list): Columns for encoding methods
-    model (class): ML model for classification
-    k(float): optional k if classifier is KN. if 'optimal', k is optimized
-
+    ----------
+    data: pandas.DataFrame: 
+        Dataset for the model
+    target: str
+        Name of target column
+    model: Callable
+        ML model for regression
+    outsiders_thresh: float
+        Threshold for the removal of outliers
+    return_forumula: bool
+        If True, returns the mathematical coefficients and intercept of a linear model
+    cols_to_encode: list[str]
+        List of columns in which apply the encoding
+    scaler: Callable
+        Class of scikit-learn for scaling the data
+    encoders: list[Callable]
+        List of encoders to apply to corresponding cols_to_encode
+    cols_to_drop: list[str]
+        List of columns' names to be dropped from the dataset
+    test_size: float, default=0.3
+            Size of the test subset
+    random_state: int, default=42
+        Controls the shuffling applied to the data before the split.
+    outsiders_thresh: float
+        Threshold for the removal of outliers
+    skip_outsiders_cols: list[str]
+        Columns for which outliers are not removed
+    k_range: TODO: refactor (accept str or number)
+        optional k if classifier is KN Clasisifier. if 'optimal', k is optimized
+    show_opt_plot: bool, default=False
+        If True and a KN classifier is used, plot the optimization algorithm
+    balance_dataset: bool, default=True
+        If True, dataset is balanced through defined balancer
+    balancer: Callable
+        Balance class from module imblearn
 
     Returns:
-    predictions (np.array): predicted target values
-    classification_report: metrics for evaluation of the model
+    -------
+    y_test: numpy.array
+        True target values
+    predictions: numpy.array
+        Predicted target values
+    classification_report: str
+        Report of the metrics for evaluation of the classification model
     """
     df = df.drop(cols_to_drop, axis=1)
     if outsiders_thresh:
@@ -320,7 +418,8 @@ def score_classification_model(df, target,
 
 
 def knn_regr_optimization(X_train, y_train, X_test, y_test, metric, k, show_plot):
-    """Try to find a optimal k for the KNNregression algoritmh
+    """
+    Find a optimal k for the KNNregression algorithm
 
     Parameters:
     metric(func): chosen metric for which k is studied 
