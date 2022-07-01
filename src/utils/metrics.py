@@ -176,7 +176,7 @@ def report_metrics(params: OrderedDict, metric, all_true, all_pred, label=None,
     # assert consistency for params and test-pred
     if len(all_true) != len(all_pred):
         raise Exception('Predictions and test are not consistent')
-    if np.prod([len(values) for values in params.values()]) == len(all_pred):
+    if np.prod([len(values) for values in params.values()]) != len(all_pred):
         raise Exception('Params not consistent with test and predictions')
 
     # calculate metric values

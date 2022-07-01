@@ -382,14 +382,14 @@ def score_classification_model(data: pd.DataFrame,
     classification_report: str
         Report of the metrics for evaluation of the classification model
     """
-    df = df.drop(cols_to_drop, axis=1)
+    data = data.drop(cols_to_drop, axis=1)
     if outsiders_thresh:
-        df = remove_outliers(df,
+        data = remove_outliers(data,
                              threshold=outsiders_thresh,
                              skip_columns=skip_outsiders_cols + [target])
 
     X_train, X_test, y_train, y_test = split_data(
-        df, target, test_size, random_state)
+        data, target, test_size, random_state)
 
     if scaler:
         scale_data(X_train, X_test, scaler)
