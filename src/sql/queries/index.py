@@ -137,12 +137,7 @@ QUERY_14 = f"\
             where offer_accepted = 'No';\
             "
 # question-15
-QUERY_15 = f"\
-            select\
-                \
-                \
-                \
-                "
+QUERY_15 = f""
 
 # question-16
 QUERY_16 = f"\
