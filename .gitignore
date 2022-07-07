@@ -6,6 +6,9 @@ __pycache__/
 # Temp data
 src/data/tmp/
 
+# Tests
+*test*.py
+
 # C extensions
 *.so
 
