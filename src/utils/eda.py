@@ -42,7 +42,7 @@ def report(data: pd.DataFrame, nan_threshold: int = -1) -> pd.DataFrame:
     uniques = data.nunique()
     report = pd.concat([nan_counts, dtypes, uniques], axis=1)
     report.columns = ['nan_count', 'dtype', 'unique']
-    return report
+    return report.dropna()
 
 
 def show_corr_heatmap(data: pd.DataFrame, figsize: tuple, save_figure: bool = False,

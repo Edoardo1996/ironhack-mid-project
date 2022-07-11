@@ -212,3 +212,28 @@ def report_metrics(params: OrderedDict, metric, all_true, all_pred, label=None,
         plot_params_metric(params, metric, report, figsize, hue)
 
     return report
+
+
+def calculate_revenue(y_test, y_pred,
+                      n_customers, customer_acceptance_gain, action_cost):
+    """
+    Calculate revenue based on results of a classification model.
+    Case scenario is a company that has a certain numbers of customers, sends 
+    the offer to the identified "Yes" or "1" customer and it will get a revenue 
+    based on the quality on the model.
+
+    Parameters:
+    ----------
+    
+    """
+    if pd.Series(y_test).unique().dtype in [int, 'int32', 'int64']:
+        y_test = pd.Series(y_test).replace({0: 'No', 1: 'Yes'})
+    if pd.Series(predictions).unique().dtype in [int, 'int32', 'int64']:
+        predictions = pd.Series(predictions).replace({0: 'No', 1: 'Yes'})
+    
+    confusion = confusion_matrix(y_test, predictions)
+    TP = confusion[1, 1]*n_customers/(len(y_test)) # True positive
+    FP = confusion[0, 1]*n_customers/(len(y_test)) # False positive
+    FN = confusion[1, 0]*n_customers/(len(y_test)) # False negative
+    revenue = - email_cost*(TP+FP) - customer_acceptance_gain*(FN) + customer_acceptance_gain*(TP)
+    return revenue
